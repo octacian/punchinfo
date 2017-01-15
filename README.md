@@ -1,6 +1,7 @@
+![Screenshot](screenshot.png)
+
 Node Information on_punch [punchinfo]
-=====================================
-* Version: 1.0, stable
+=======================================
 * Licence: Code: MIT (see LICENSE), Media: CC-BY-SA 3.0
 * [GitHub Repository](https://github.com/octacian/punchinfo)
 * [Issue Tracker](https://github.com/octacian/punchinfo/issues)
