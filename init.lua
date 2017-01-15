@@ -2,9 +2,24 @@
 
 punchinfo = {}
 
--- [get] settings
+local path = minetest.get_worldpath().."/punchinfo.players"
+
+------------------------
+-- LOAD CONFIGURATION --
+------------------------
 
 local hud_show_time = minetest.setting_get("punchinfo.hud_show_time") or 2
+
+local disabled_players = {}
+local player_file = io.open(path, "r")
+
+if player_file then
+  disabled_players = minetest.deserialize(player_file:read("*all"))
+end
+
+----------------------
+-- HELPER FUNCTIONS --
+----------------------
 
 local hud_contexts = {}
 
@@ -34,8 +49,16 @@ function punchinfo.hide_huds(player)
   hud_contexts[name] = nil
 end
 
+--------------------
+----- [EVENTS] -----
+--------------------
+
 -- [event] on_punchnode
 minetest.register_on_punchnode(function(pos, node, player, pointed_thing)
+  if disabled_players[player:get_player_name()] == false then
+    return
+  end
+
   punchinfo.hide_huds(player)
 
   local node    = minetest.get_node(pointed_thing.under) -- get node
@@ -106,3 +129,30 @@ minetest.register_on_punchnode(function(pos, node, player, pointed_thing)
     punchinfo.hide_huds(player)
   end)
 end)
+
+-- [event] on shutdown
+minetest.register_on_shutdown(function()
+  local f = io.open(path, "w")
+  f:write(minetest.serialize(disabled_players))
+end)
+
+------------------
+-- CHATCOMMANDS --
+------------------
+
+-- [command] punchinfo
+minetest.register_chatcommand("punchinfo", {
+  description = "Enable or disable punchinfo HUD",
+  params = "<true/false> | enable/disable",
+  func = function(name, param)
+    if param == "true" then
+      disabled_players[name] = true
+      return true, "Enabled PunchInfo HUD"
+    elseif param == "false" then
+      disabled_players[name] = false
+      return true, "Disabled PunchInfo HUD"
+    else
+      return false, "Invalid parameter"
+    end
+  end
+})
