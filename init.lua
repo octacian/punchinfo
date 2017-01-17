@@ -8,8 +8,8 @@ local path = minetest.get_worldpath().."/punchinfo.players"
 -- LOAD CONFIGURATION --
 ------------------------
 
-local hud_show_time = minetest.setting_get("punchinfo.hud_show_time") or 2
-local hud_size = minetest.setting_get("punchinfo.hud_size") or 2
+local global_hud_show_time = minetest.setting_get("punchinfo.hud_show_time") or 2
+local global_hud_size = minetest.setting_get("punchinfo.hud_size") or 2
 
 local disabled_players = {}
 local player_file = io.open(path, "r")
@@ -50,14 +50,34 @@ function punchinfo.hide_huds(player)
   hud_contexts[name] = nil
 end
 
+-- [local function] check if valid
+local function is_valid(value, list)
+  for _, v in pairs(list) do
+    if value == v then
+      return true
+    end
+  end
+end
+
 --------------------
 ----- [EVENTS] -----
 --------------------
 
 -- [event] on_punchnode
 minetest.register_on_punchnode(function(pos, node, player, pointed_thing)
-  if disabled_players[player:get_player_name()] == false then
-    return
+  local player_info = disabled_players[player:get_player_name()]
+  local hud_show_time, hud_size
+
+  if player_info then
+    if player_info.enabled == false then
+      return
+    end
+
+    hud_show_time = player_info.time or global_hud_show_time
+    hud_size = player_info.size or global_hud_size
+  else
+    hud_show_time = global_hud_show_time
+    hud_size = global_hud_size
   end
 
   punchinfo.hide_huds(player)
@@ -162,17 +182,54 @@ end)
 
 -- [command] punchinfo
 minetest.register_chatcommand("punchinfo", {
-  description = "Enable or disable punchinfo HUD",
-  params = "<true/false> | enable/disable",
+  description = "Manage and customize PunchInfo settings",
   func = function(name, param)
-    if param == "true" then
-      disabled_players[name] = true
-      return true, "Enabled PunchInfo HUD"
-    elseif param == "false" then
-      disabled_players[name] = false
-      return true, "Disabled PunchInfo HUD"
+    local param = param:split(" ")
+
+    if param[1] == "clear" then
+      disabled_players[name] = nil
+      return true, "Cleared PunchInfo data (size, show time, etc...)"
     else
-      return false, "Invalid parameter"
+      if not disabled_players[name] then
+        disabled_players[name] = {}
+      end
+
+      if param[1] == "get" then
+        if not param[2] then
+          return false, "Missing Key Parameter"
+        end
+
+        local val = disabled_players[name][param[2]] or "nil"
+        return true, "PunchInfo: "..param[2].." = "..val
+      elseif param[1] == "enable" then
+        disabled_players[name].enabled = true
+        return true, "Enabled PunchInfo HUD"
+      elseif param[1] == "disable" then
+        disabled_players[name].enabled = false
+        return true, "Disabled PunchInfo HUD"
+      elseif param[1] == "time" then
+        local newtime = tonumber(param[2])
+
+        if not newtime then
+          return false, "Invalid time value (must be an integer)"
+        elseif newtime <= 0 then
+          return false, "Time value cannot be less than 1"
+        end
+
+        disabled_players[name].time = newtime
+        return true, "Set HUD show time to "..param[2]
+      elseif param[1] == "size" then
+        local valid_sizes = { "1", "2", "3", }
+
+        if is_valid(param[2], valid_sizes) then
+          disabled_players[name].size = param[2]
+          return true, "Set PunchInfo HUD size to "..param[2]
+        else
+          return false, "Invalid Size (valid sizes: 1, 2, 3)"
+        end
+      else
+        return false, "Invalid parameter"
+      end
     end
   end
 })

@@ -13,10 +13,14 @@ The concept of PunchInfo is very simple, whenever a player left-clicks (i.e. pun
 
 If you find the HUD to be too big, it can be configured to one of three sizes in `minetest.conf` with `punchnode.hud_size`. The HUD size can be set to one of three integer, `1`, `2`, or `3` (`2` is default).
 
-The PunchInfo HUD can be disabled per player with the `/punchinfo` command. A list of players who have enabled or disabled the HUD can be found in `[worlddir]/punchinfo.players`.
+### Chatcommand
+The HUD can be managed and customized per-player with the `/punchinfo` command. This single command accepts several parameters, as seen below.
 
-Example:
-```
-/punchinfo true -- enables HUD for player
-/punchinfo false -- disables HUD for player
-```
+| Parameter | Function |
+| --------- | -------- |
+| `clear` | Clears all information about the player (show time, size, etc...) |
+| `get <key>` | Gets HUD information (e.g. size) |
+| `enable` | Enables the PunchInfo HUD |
+| `disable` | Disables the PunchInfo HUD |
+| `time <integer>` | Sets the time before the HUD is hidden |
+| `size <integer>` | Sets the HUD size to 1, 2, or 3 |
