@@ -25,7 +25,7 @@ end
 local hud_contexts = {}
 
 -- [function] show hud
-function punchinfo.show_hud(player, hud)
+function punchinfo.show_hud(player, set_id, hud)
   local id = player:hud_add(hud)
   local name = player:get_player_name()
 
@@ -33,21 +33,30 @@ function punchinfo.show_hud(player, hud)
     hud_contexts[name] = {}
   end
 
-  hud_contexts[name][#hud_contexts[name]+1] = id
+  if not hud_contexts[name][set_id] then
+    hud_contexts[name][set_id] = {}
+  end
+
+  hud_contexts[name][set_id][#hud_contexts[name][set_id]+1] = id
+  hud_contexts[name].current_id = set_id
 
   return id
 end
 
 -- [function] hide huds
-function punchinfo.hide_huds(player)
+function punchinfo.hide_huds(player, set_id)
   local name = player:get_player_name()
   local huds = hud_contexts[name] or {}
 
-  for _, id in pairs(huds) do
+  if huds.current_id ~= set_id or not huds[set_id] then
+    return
+  end
+
+  for _, id in pairs(huds[set_id]) do
     player:hud_remove(id)
   end
 
-  hud_contexts[name] = nil
+  hud_contexts[name][set_id] = nil
 end
 
 -- [local function] check if valid
@@ -65,7 +74,10 @@ end
 
 -- [event] on_punchnode
 minetest.register_on_punchnode(function(pos, node, player, pointed_thing)
-  local player_info = disabled_players[player:get_player_name()]
+  local name        = player:get_player_name()
+  local player_info = disabled_players[name]
+  local huds        = hud_contexts[name]
+  local hud_id      = 1
   local hud_show_time, hud_size
 
   if player_info then
@@ -80,7 +92,12 @@ minetest.register_on_punchnode(function(pos, node, player, pointed_thing)
     hud_size = global_hud_size
   end
 
-  punchinfo.hide_huds(player)
+  if huds then
+    if huds.current_id then
+      hud_id = huds.current_id + 1
+      punchinfo.hide_huds(player, huds.current_id)
+    end
+  end
 
   local node    = minetest.get_node(pointed_thing.under) -- get node
   local nodedef = minetest.registered_nodes[node.name]   -- get nodedef
@@ -113,7 +130,7 @@ minetest.register_on_punchnode(function(pos, node, player, pointed_thing)
   end
 
   -- [hud] background image
-  local image = punchinfo.show_hud(player, {
+  local image = punchinfo.show_hud(player, hud_id, {
     hud_elem_type = "image",
     position = { x = 0.5, y = 0.03 },
     scale = scale or { x = -79, y = -25 },
@@ -121,7 +138,7 @@ minetest.register_on_punchnode(function(pos, node, player, pointed_thing)
   })
 
   -- [hud] desc
-  local desc = punchinfo.show_hud(player, {
+  local desc = punchinfo.show_hud(player, hud_id, {
     hud_elem_type = "text",
     position = { x = 0.5, y = 0.03 },
     scale = { x = -26, y = -12 },
@@ -130,7 +147,7 @@ minetest.register_on_punchnode(function(pos, node, player, pointed_thing)
 
   if hud_size == "1" then
     -- [hud] light source
-    local light = punchinfo.show_hud(player, {
+    local light = punchinfo.show_hud(player, hud_id, {
       hud_elem_type = "text",
       position = { x = 0.5, y = 0.06 },
       scale = { x = -26, y = -12 },
@@ -138,7 +155,7 @@ minetest.register_on_punchnode(function(pos, node, player, pointed_thing)
     })
 
     -- [hud] drawtype
-    local drawtype = punchinfo.show_hud(player, {
+    local drawtype = punchinfo.show_hud(player, hud_id, {
       hud_elem_type = "text",
       position = { x = 0.5, y = 0.09 },
       scale = { x = -26, y = -12 },
@@ -148,7 +165,7 @@ minetest.register_on_punchnode(function(pos, node, player, pointed_thing)
 
   if hud_size == "1" or hud_size == "2" then
     -- [hud] texture
-    local texture = punchinfo.show_hud(player, {
+    local texture = punchinfo.show_hud(player, hud_id, {
       hud_elem_type = "image",
       position = texture_pos or { x = 0.18, y = 0.06 },
       scale = texture_scale or { x = 4.5, y = 4.5 },
@@ -156,7 +173,7 @@ minetest.register_on_punchnode(function(pos, node, player, pointed_thing)
     })
 
     -- [hud] groups
-    local groups = punchinfo.show_hud(player, {
+    local groups = punchinfo.show_hud(player, hud_id, {
       hud_elem_type = "text",
       position = groups_pos or { x = 0.5, y = 0.12 },
       scale = { x = -26, y = -12 },
@@ -166,7 +183,7 @@ minetest.register_on_punchnode(function(pos, node, player, pointed_thing)
 
   -- [after] remove hud elems
   minetest.after(hud_show_time, function()
-    punchinfo.hide_huds(player)
+    punchinfo.hide_huds(player, hud_id)
   end)
 end)
 
