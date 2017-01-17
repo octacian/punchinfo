@@ -11,6 +11,8 @@ This is another fairly simple utility mod, but it can serve a very useful purpos
 
 The concept of PunchInfo is very simple, whenever a player left-clicks (i.e. punches) a node, information about that node is shown. This information includes the description, itemstring, top texture, light emission level, drawtype, and groups. The HUD is removed after 2 seconds (configurable in `minetest.conf` with `punchnode.hud_show_time`, integer).
 
+If you find the HUD to be too big, it can be configured to one of three sizes in `minetest.conf` with `punchnode.hud_size`. The HUD size can be set to one of three integer, `1`, `2`, or `3` (`2` is default).
+
 The PunchInfo HUD can be disabled per player with the `/punchinfo` command. A list of players who have enabled or disabled the HUD can be found in `[worlddir]/punchinfo.players`.
 
 Example:

@@ -9,6 +9,7 @@ local path = minetest.get_worldpath().."/punchinfo.players"
 ------------------------
 
 local hud_show_time = minetest.setting_get("punchinfo.hud_show_time") or 2
+local hud_size = minetest.setting_get("punchinfo.hud_size") or 2
 
 local disabled_players = {}
 local player_file = io.open(path, "r")
@@ -76,11 +77,26 @@ minetest.register_on_punchnode(function(pos, node, player, pointed_thing)
     tile = tile.."^[resize:16x16"
   end
 
+  local scale, groups_pos, texture_scale, texture_pos, desc_text
+  if hud_size == "1" then
+    scale = { x = -79, y = -25 }
+  elseif hud_size == "2" then
+    scale = { x = -45, y = -15 }
+    groups_pos = { x = 0.5, y = 0.06 }
+    texture_pos = { x = 0.32, y = 0.045 }
+    texture_scale = { x = 2.5, y = 2.5 }
+  elseif hud_size == "3" then
+    scale = { x = -25, y = -7 }
+    texture_pos = { x = 0.32, y = 0.045 }
+    texture_scale = { x = 2.5, y = 2.5 }
+    desc_text = nodedef.description
+  end
+
   -- [hud] background image
   local image = punchinfo.show_hud(player, {
     hud_elem_type = "image",
     position = { x = 0.5, y = 0.03 },
-    scale = { x = -79, y = -25 },
+    scale = scale or { x = -79, y = -25 },
     text = "punchinfo_hud.png",
   })
 
@@ -89,40 +105,44 @@ minetest.register_on_punchnode(function(pos, node, player, pointed_thing)
     hud_elem_type = "text",
     position = { x = 0.5, y = 0.03 },
     scale = { x = -26, y = -12 },
-    text = nodedef.description.." ("..node.name..")"
+    text = desc_text or nodedef.description.." ("..node.name..")"
   })
 
-  -- [hud] texture
-  local texture = punchinfo.show_hud(player, {
-    hud_elem_type = "image",
-    position = { x = 0.18, y = 0.06 },
-    scale = { x = 4.5, y = 4.5 },
-    text = tile,
-  })
+  if hud_size == "1" then
+    -- [hud] light source
+    local light = punchinfo.show_hud(player, {
+      hud_elem_type = "text",
+      position = { x = 0.5, y = 0.06 },
+      scale = { x = -26, y = -12 },
+      text = "Light Emission: "..nodedef.light_source or 0,
+    })
 
-  -- [hud] light source
-  local light = punchinfo.show_hud(player, {
-    hud_elem_type = "text",
-    position = { x = 0.5, y = 0.06 },
-    scale = { x = -26, y = -12 },
-    text = "Light Emission: "..nodedef.light_source or 0,
-  })
+    -- [hud] drawtype
+    local drawtype = punchinfo.show_hud(player, {
+      hud_elem_type = "text",
+      position = { x = 0.5, y = 0.09 },
+      scale = { x = -26, y = -12 },
+      text = "Drawtype: "..nodedef.drawtype or "normal",
+    })
+  end
 
-  -- [hud] drawtype
-  local drawtype = punchinfo.show_hud(player, {
-    hud_elem_type = "text",
-    position = { x = 0.5, y = 0.09 },
-    scale = { x = -26, y = -12 },
-    text = "Drawtype: "..nodedef.drawtype or "normal",
-  })
+  if hud_size == "1" or hud_size == "2" then
+    -- [hud] texture
+    local texture = punchinfo.show_hud(player, {
+      hud_elem_type = "image",
+      position = texture_pos or { x = 0.18, y = 0.06 },
+      scale = texture_scale or { x = 4.5, y = 4.5 },
+      text = tile,
+    })
 
-  -- [hud] groups
-  local groups = punchinfo.show_hud(player, {
-    hud_elem_type = "text",
-    position = { x = 0.5, y = 0.12 },
-    scale = { x = -26, y = -12 },
-    text = "Groups: { "..groups.."}",
-  })
+    -- [hud] groups
+    local groups = punchinfo.show_hud(player, {
+      hud_elem_type = "text",
+      position = groups_pos or { x = 0.5, y = 0.12 },
+      scale = { x = -26, y = -12 },
+      text = "Groups: { "..groups.."}",
+    })
+  end
 
   -- [after] remove hud elems
   minetest.after(hud_show_time, function()
