@@ -2,21 +2,10 @@
 
 punchinfo = {}
 
-local path = minetest.get_worldpath().."/punchinfo.players"
+-- Configuration ---
 
-------------------------
--- LOAD CONFIGURATION --
-------------------------
-
-local global_hud_show_time = minetest.setting_get("punchinfo.hud_show_time") or 2
-local global_hud_size = minetest.setting_get("punchinfo.hud_size") or 2
-
-local disabled_players = {}
-local player_file = io.open(path, "r")
-
-if player_file then
-	disabled_players = minetest.deserialize(player_file:read("*all"))
-end
+local global_hud_show_time = tonumber(minetest.settings:get("punchinfo.hud_show_time")) or 2
+local global_hud_size = tonumber(minetest.settings:get("punchinfo.hud_size")) or 2
 
 ----------------------
 -- HELPER FUNCTIONS --
@@ -73,23 +62,19 @@ end
 --------------------
 
 -- [event] on_punchnode
-minetest.register_on_punchnode(function(pos, node, player, pointed_thing)
+minetest.register_on_punchnode(function(pos, node, player)
 	local name        = player:get_player_name()
-	local player_info = disabled_players[name]
+	local meta        = player:get_meta()
 	local huds        = hud_contexts[name]
 	local hud_id      = 1
-	local hud_show_time, hud_size
+	local hud_show_time = meta:get_int("punchinfo.time")
+	local hud_size    = meta:get_int("punchinfo.size")
 
-	if player_info then
-		if player_info.enabled == false then
-			return
-		end
+	if hud_show_time == 0 then hud_show_time = global_hud_show_time end
+	if hud_size == 0 then hud_size = global_hud_size end
 
-		hud_show_time = player_info.time or global_hud_show_time
-		hud_size = player_info.size or global_hud_size
-	else
-		hud_show_time = global_hud_show_time
-		hud_size = global_hud_size
+	if meta:get_string("punchinfo.enabled") == "false" then
+		return
 	end
 
 	if huds then
@@ -99,7 +84,6 @@ minetest.register_on_punchnode(function(pos, node, player, pointed_thing)
 		end
 	end
 
-	local node    = minetest.get_node(pointed_thing.under) -- get node
 	local nodedef = minetest.registered_nodes[node.name]   -- get nodedef
 
 	local groups = ""
@@ -115,14 +99,14 @@ minetest.register_on_punchnode(function(pos, node, player, pointed_thing)
 	end
 
 	local scale, groups_pos, texture_scale, texture_pos, desc_text
-	if hud_size == "1" then
+	if hud_size == 1 then
 		scale = { x = -79, y = -25 }
-	elseif hud_size == "2" then
+	elseif hud_size == 2 then
 		scale = { x = -45, y = -15 }
 		groups_pos = { x = 0.5, y = 0.06 }
 		texture_pos = { x = 0.32, y = 0.045 }
 		texture_scale = { x = 2.5, y = 2.5 }
-	elseif hud_size == "3" then
+	elseif hud_size == 3 then
 		scale = { x = -25, y = -7 }
 		texture_pos = { x = 0.32, y = 0.045 }
 		texture_scale = { x = 2.5, y = 2.5 }
@@ -130,7 +114,7 @@ minetest.register_on_punchnode(function(pos, node, player, pointed_thing)
 	end
 
 	-- [hud] background image
-	local image = punchinfo.show_hud(player, hud_id, {
+	punchinfo.show_hud(player, hud_id, {
 		hud_elem_type = "image",
 		position = { x = 0.5, y = 0.03 },
 		scale = scale or { x = -79, y = -25 },
@@ -138,16 +122,16 @@ minetest.register_on_punchnode(function(pos, node, player, pointed_thing)
 	})
 
 	-- [hud] desc
-	local desc = punchinfo.show_hud(player, hud_id, {
+	punchinfo.show_hud(player, hud_id, {
 		hud_elem_type = "text",
 		position = { x = 0.5, y = 0.03 },
 		scale = { x = -26, y = -12 },
 		text = desc_text or nodedef.description.." ("..node.name..")"
 	})
 
-	if hud_size == "1" then
+	if hud_size == 1 then
 		-- [hud] light source
-		local light = punchinfo.show_hud(player, hud_id, {
+		punchinfo.show_hud(player, hud_id, {
 			hud_elem_type = "text",
 			position = { x = 0.5, y = 0.06 },
 			scale = { x = -26, y = -12 },
@@ -155,7 +139,7 @@ minetest.register_on_punchnode(function(pos, node, player, pointed_thing)
 		})
 
 		-- [hud] drawtype
-		local drawtype = punchinfo.show_hud(player, hud_id, {
+		punchinfo.show_hud(player, hud_id, {
 			hud_elem_type = "text",
 			position = { x = 0.5, y = 0.09 },
 			scale = { x = -26, y = -12 },
@@ -163,9 +147,9 @@ minetest.register_on_punchnode(function(pos, node, player, pointed_thing)
 		})
 	end
 
-	if hud_size == "1" or hud_size == "2" then
+	if hud_size == 1 or hud_size == 2 then
 		-- [hud] texture
-		local texture = punchinfo.show_hud(player, hud_id, {
+		punchinfo.show_hud(player, hud_id, {
 			hud_elem_type = "image",
 			position = texture_pos or { x = 0.18, y = 0.06 },
 			scale = texture_scale or { x = 4.5, y = 4.5 },
@@ -173,7 +157,7 @@ minetest.register_on_punchnode(function(pos, node, player, pointed_thing)
 		})
 
 		-- [hud] groups
-		local groups = punchinfo.show_hud(player, hud_id, {
+		punchinfo.show_hud(player, hud_id, {
 			hud_elem_type = "text",
 			position = groups_pos or { x = 0.5, y = 0.12 },
 			scale = { x = -26, y = -12 },
@@ -187,12 +171,6 @@ minetest.register_on_punchnode(function(pos, node, player, pointed_thing)
 	end)
 end)
 
--- [event] on shutdown
-minetest.register_on_shutdown(function()
-	local f = io.open(path, "w")
-	f:write(minetest.serialize(disabled_players))
-end)
-
 ------------------
 -- CHATCOMMANDS --
 ------------------
@@ -201,28 +179,28 @@ end)
 minetest.register_chatcommand("punchinfo", {
 	description = "Manage and customize PunchInfo settings",
 	func = function(name, param)
-		local param = param:split(" ")
+		local player = minetest.get_player_by_name(name)
+		local meta   = player:get_meta()
+		param        = param:split(" ")
 
 		if param[1] == "clear" then
-			disabled_players[name] = nil
+			meta:set_string("punchinfo.enabled", nil)
+			meta:set_int("punchinfo.time", 0)
+			meta:set_int("punchinfo.size", 0)
 			return true, "Cleared PunchInfo data (size, show time, etc...)"
 		else
-			if not disabled_players[name] then
-				disabled_players[name] = {}
-			end
-
 			if param[1] == "get" then
 				if not param[2] then
 					return false, "Missing Key Parameter"
 				end
 
-				local val = disabled_players[name][param[2]] or "nil"
+				local val = meta:to_table()["punchinfo."..param[2]] or "nil"
 				return true, "PunchInfo: "..param[2].." = "..val
 			elseif param[1] == "enable" then
-				disabled_players[name].enabled = true
+				meta:set_string("punchinfo.enabled", "true")
 				return true, "Enabled PunchInfo HUD"
 			elseif param[1] == "disable" then
-				disabled_players[name].enabled = false
+				meta:set_string("punchinfo.enabled", "false")
 				return true, "Disabled PunchInfo HUD"
 			elseif param[1] == "time" then
 				local newtime = tonumber(param[2])
@@ -233,13 +211,13 @@ minetest.register_chatcommand("punchinfo", {
 					return false, "Time value cannot be less than 1"
 				end
 
-				disabled_players[name].time = newtime
+				meta:set_int("punchinfo.time", newtime)
 				return true, "Set HUD show time to "..param[2]
 			elseif param[1] == "size" then
 				local valid_sizes = { "1", "2", "3", }
 
 				if is_valid(param[2], valid_sizes) then
-					disabled_players[name].size = param[2]
+					meta:set_int("punchinfo.size", param[2])
 					return true, "Set PunchInfo HUD size to "..param[2]
 				else
 					return false, "Invalid Size (valid sizes: 1, 2, 3)"
