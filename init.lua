@@ -91,11 +91,14 @@ minetest.register_on_punchnode(function(pos, node, player)
 		groups = groups.._.."="..v..", "
 	end
 
-	local tile = nodedef.tiles[1]
-	if type(tile) ~= "string" then
-		tile = nodedef.inventory_image or ""
-	else
-		tile = tile.."^[resize:16x16"
+	local tile = ""
+	if nodedef.tiles then
+		tile = nodedef.tiles[1]
+		if type(tile) ~= "string" then
+			tile = nodedef.inventory_image or ""
+		else
+			tile = tile.."^[resize:16x16"
+		end
 	end
 
 	local scale, groups_pos, texture_scale, texture_pos, desc_text
